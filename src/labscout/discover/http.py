@@ -8,6 +8,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
+import urllib3
 
 from ..models import Host, HttpInfo
 
@@ -40,7 +41,8 @@ def probe(session: requests.Session, ip: str, port: int, tls_first: bool,
                             stream=True)
             body = r.raw.read(65536, decode_content=True).decode(r.encoding or "utf-8", "replace")
             r.close()
-        except (requests.RequestException, OSError, ValueError):
+        except (requests.RequestException, urllib3.exceptions.HTTPError, OSError, ValueError):
+            # urllib3 errors (ReadTimeoutError, ProtocolError) come from r.raw.read() unwrapped
             continue
         # "Client sent an HTTP request to an HTTPS server" and friends: try the other scheme
         if scheme == "http" and r.status_code == 400 and "https" in body.lower():
@@ -65,7 +67,7 @@ def probe(session: requests.Session, ip: str, port: int, tls_first: bool,
                     info.title = _clean(m2.group(1)) if m2 else ""
                     if not info.title:
                         info.body_hint = _clean(_TAGS.sub(" ", r2.text[:4096]), 120)
-                except requests.RequestException:
+                except (requests.RequestException, urllib3.exceptions.HTTPError, OSError, ValueError):
                     pass
         return info
     return None
@@ -81,8 +83,16 @@ def fingerprint_http(hosts: dict[str, Host], timeout: float = 4.0, workers: int 
     session = requests.Session()
     session.headers["User-Agent"] = "labscout (homelab inventory)"
     warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+    def safe_probe(job):
+        host, port = job
+        try:
+            return probe(session, host.ip, port, _looks_tls(host, port), timeout)
+        except Exception as exc:  # noqa: BLE001 - one odd device must never stop the scan
+            log(f"  {host.ip}:{port}: HTTP probe failed ({exc.__class__.__name__}), skipped")
+            return None
+
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = pool.map(lambda j: probe(session, j[0].ip, j[1], _looks_tls(j[0], j[1]), timeout), jobs)
+        results = pool.map(safe_probe, jobs)
         for (host, _port), info in zip(jobs, results):
             if info:
                 host.http.append(info)

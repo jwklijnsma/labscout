@@ -214,3 +214,36 @@ def test_netbox_upsert(cfg, grafana_host, monkeypatch):
 def test_http_info_roundtrip():
     h = Host(ip="1.2.3.4", http=[HttpInfo(port=80, title="x")], ports=[Port(80)])
     assert Host.from_dict(h.to_dict()).http[0].title == "x"
+
+
+def test_http_probe_survives_a_device_that_stalls_mid_body():
+    """A device that sends headers and then stops (seen on 10.0.2.35:81) must not stop the scan."""
+    import socket
+    import threading
+    import time
+
+    from labscout.discover.http import fingerprint_http
+    from labscout.models import Host, Port
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(4)
+    port = srv.getsockname()[1]
+
+    def serve():
+        while True:
+            try:
+                conn, _ = srv.accept()
+            except OSError:
+                return
+            conn.recv(4096)
+            conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5000\r\n\r\n<html>")
+            time.sleep(3)          # never sends the rest
+            conn.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+    host = Host(ip="127.0.0.1", ports=[Port(port, service="http")])
+    logs = []
+    fingerprint_http({"127.0.0.1": host}, timeout=0.5, log=logs.append)   # must not raise
+    srv.close()
+    assert host.http == [] or host.http[0].port == port
