@@ -11,3 +11,4 @@ labscout.yml
 /site/
 .cache/
 site/
+node_modules/

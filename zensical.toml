@@ -25,6 +25,7 @@ nav = [
   ] },
   { "Deploy" = "deploy.md" },
   { "Configuration" = "configuration.md" },
+  { "Development" = "development.md" },
 ]
 
 [project.theme]

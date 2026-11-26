@@ -60,11 +60,24 @@ the file itself: `PVE_TOKEN_<NAME>` (read-only PVEAuditor tokens), `NETBOX_TOKEN
 
 Full docs: <https://jwklijnsma.github.io/labscout/>. Preview them locally with `make docs`.
 
+## Web UI
+
+`labscout serve` opens a React UI with three pages:
+
+- **Hosts:** filter, search, and approve or reject in bulk. Click a host for everything found about it and to correct the app.
+- **Plan & apply:** preview first, then write to NetBox or commit to the infra branch.
+- **Scan:** start a scan or identify again.
+
+Jobs run in a queue in the background and show live logs. The top bar shows Ollama, the model picker, nmap and NetBox.
+
 ## Development
 
 ```bash
-make install   # editable install with pytest
-make test
+make install     # editable install with pytest
+make test        # Python + web API tests against a fake Ollama
+make web-test    # typecheck and test the UI
+make web         # rebuild the UI bundle (committed, so pip/Docker need no Node)
+make help        # everything else, including releases
 ```
 
 MIT licensed.

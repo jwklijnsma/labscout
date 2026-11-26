@@ -1,10 +1,6 @@
-import json
-import threading
-import urllib.error
-import urllib.request
 
-from conftest import FakeOllama
 import yaml
+from conftest import FakeOllama
 
 from labscout import fingerprints, state
 from labscout.apply import NetBox, apply_netbox
@@ -213,40 +209,6 @@ def test_netbox_upsert(cfg, grafana_host, monkeypatch):
     assert stats == {"created": 1, "updated": 0, "services": 1}
     stats = apply_netbox(plan, cfg, log=lambda *_: None)
     assert stats["updated"] == 1 and len(fake.db["/ipam/ip-addresses/"]) == 1
-
-
-# ----------------------------------------------------------------------------- web
-def test_web_auth_and_decision(cfg, grafana_host):
-    from http.server import ThreadingHTTPServer
-
-    from labscout.web import Job, make_handler
-    state.save(cfg.state_dir, [grafana_host])
-    srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(cfg, None, "tok", Job()))
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    base = f"http://127.0.0.1:{srv.server_address[1]}"
-    try:
-        try:
-            urllib.request.urlopen(base + "/api/state")
-            raise AssertionError("no token must be refused")
-        except urllib.error.HTTPError as e:
-            assert e.code == 401
-        hdr = {"Cookie": "labscout_token=tok"}
-        st = json.loads(urllib.request.urlopen(urllib.request.Request(base + "/api/state", headers=hdr)).read())
-        assert st["hosts"][0]["ip"] == "10.0.3.116"
-        req = urllib.request.Request(base + "/api/host", method="POST",
-                                     data=json.dumps({"ip": "10.0.3.116", "decision": "approved"}).encode(),
-                                     headers={**hdr, "X-Labscout": "1", "Content-Type": "application/json"})
-        assert json.loads(urllib.request.urlopen(req).read())["decision"] == "approved"
-        # POST without the custom header (cross-site form) is refused
-        bad = urllib.request.Request(base + "/api/host", method="POST", data=b"{}", headers=hdr)
-        try:
-            urllib.request.urlopen(bad)
-            raise AssertionError("missing header must be refused")
-        except urllib.error.HTTPError as e:
-            assert e.code == 401
-        assert state.load(cfg.state_dir)[0].decision == "approved"
-    finally:
-        srv.shutdown()
 
 
 def test_http_info_roundtrip():

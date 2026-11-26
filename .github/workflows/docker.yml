@@ -6,9 +6,26 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+  # Called by the release workflow: a tag pushed with GITHUB_TOKEN does not start
+  # other workflows, so the release builds its image through this instead.
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref or commit to build
+        type: string
+        required: true
+      version:
+        description: Release version X.Y.Z, tagged as X.Y.Z and X.Y
+        type: string
+        required: false
+      dry_run:
+        description: Build and test, push nothing
+        type: boolean
+        default: false
 
 concurrency:
-  group: docker-${{ github.ref }}
+  group: docker-${{ inputs.ref || github.ref }}
+  # Never cancel a publish half-way; superseded PR runs can go.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -19,44 +36,153 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+
   image:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      # The commit actually checked out; github.sha is the caller's when this is called.
+      - id: rev
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
-      - uses: docker/metadata-action@v6
-        id: meta
+
+      - id: meta
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
+          flavor: latest=false
           tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-      - uses: docker/login-action@v4
-        if: github.event_name != 'pull_request'
+            type=semver,pattern={{version}},value=v${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=raw,value=sha-${{ steps.rev.outputs.short }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.rev.outputs.sha }}
+
+      # 1. Build for amd64 only and load it, so the smoke test runs the real image.
+      - name: Build test image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: labscout:test
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            REVISION=${{ steps.rev.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test - CLI scan
+        run: |
+          set -euo pipefail
+          docker run --rm labscout:test --version
+          # A fake "Grafana" on the runner, scanned from the container over the host network.
+          mkdir -p "$RUNNER_TEMP/app" "$RUNNER_TEMP/config" "$RUNNER_TEMP/data"
+          echo '<html><head><title>Grafana</title></head><body>ok</body></html>' > "$RUNNER_TEMP/app/index.html"
+          (cd "$RUNNER_TEMP/app" && nohup python3 -m http.server 3000 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          printf 'networks: [127.0.0.1/32]\nports: "3000"\nuse_llm: false\n' > "$RUNNER_TEMP/config/labscout.yml"
+          chmod 0777 "$RUNNER_TEMP/data"
+          sleep 1
+          docker run --rm --network host --cap-add NET_RAW --cap-add NET_ADMIN \
+            -v "$RUNNER_TEMP/config:/config:ro" -v "$RUNNER_TEMP/data:/data" \
+            labscout:test run -c /config/labscout.yml
+          python3 - "$RUNNER_TEMP/data/hosts.json" <<'EOF'
+          import json, sys
+          hosts = json.load(open(sys.argv[1]))
+          hosts = hosts.get("hosts", hosts) if isinstance(hosts, dict) else hosts
+          apps = {h["ip"]: (h.get("identity") or {}).get("app") for h in hosts}
+          print(apps)
+          assert apps.get("127.0.0.1") == "grafana", "nmap + fingerprints did not identify the test page"
+          EOF
+          test -s "$RUNNER_TEMP/data/report.md"
+
+      - name: Smoke test - web UI
+        run: |
+          set -euo pipefail
+          docker run -d --name labscout --network host \
+            --health-interval=2s --health-start-period=2s \
+            -e LABSCOUT_WEB_TOKEN=ci-token \
+            -v "$RUNNER_TEMP/config:/config:ro" -v "$RUNNER_TEMP/data:/data" \
+            labscout:test
+          for i in $(seq 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' labscout)" = healthy ] && break
+            sleep 1
+          done
+          docker inspect -f 'health: {{.State.Health.Status}}' labscout
+          test "$(docker inspect -f '{{.State.Health.Status}}' labscout)" = healthy
+          curl -fsS http://127.0.0.1:8766/ | grep -q '<div id="root">'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8766/api/hosts)" = 401
+          curl -fsS -H "Authorization: Bearer ci-token" http://127.0.0.1:8766/api/hosts | tee /dev/stderr | grep -q '"grafana"'
+          curl -fsS -H "Authorization: Bearer ci-token" -H "X-Labscout: 1" -H "Content-Type: application/json" \
+            -d '{"action":"plan"}' http://127.0.0.1:8766/api/jobs | tee /dev/stderr | grep -q '"status"'
+          docker stop -t 15 labscout
+          code="$(docker inspect -f '{{.State.ExitCode}}' labscout)"
+          echo "exit code after docker stop: $code"
+          test "$code" = 0   # SIGINT reached labscout through tini and it shut down cleanly
+
+      - name: Container logs
+        if: always()
+        run: docker logs labscout 2>&1 || true
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request' && !inputs.dry_run
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v7
+
+      # 2. Multi-arch build (amd64 comes from the cache above); pushed except on PRs and dry runs.
+      - name: Build and push
+        uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || env.PLATFORMS }}
-          push: ${{ github.event_name != 'pull_request' }}
-          load: ${{ github.event_name == 'pull_request' }}
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ github.event_name != 'pull_request' && !inputs.dry_run }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ github.ref_name }}
-            REVISION=${{ github.sha }}
+            VERSION=${{ steps.meta.outputs.version }}
+            REVISION=${{ steps.rev.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Smoke test
-        if: github.event_name == 'pull_request'
-        run: docker run --rm "$(echo '${{ steps.meta.outputs.tags }}' | head -1)" --version
+          provenance: mode=max
+          sbom: true
+
+      - name: Summary
+        if: github.event_name != 'pull_request'
+        run: |
+          {
+            if [ "${{ inputs.dry_run }}" = true ]; then echo "### Dry run: built, not pushed"; else echo "### Published"; fi
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import html
 import re
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
@@ -14,8 +14,8 @@ from ..models import Host, HttpInfo
 # Ports that are never HTTP (saves time and avoids confusing banner text)
 NOT_HTTP = {21, 22, 23, 25, 53, 110, 143, 389, 445, 587, 993, 995, 1883, 3306, 3493, 5432, 6379}
 TLS_FIRST = {443, 5001, 8006, 8007, 8443, 9443}
-_TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
-_GEN = re.compile(r'<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"\']+)', re.I)
+_TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+_GEN = re.compile(r'<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"\']+)', re.IGNORECASE)
 _TAGS = re.compile(r"<[^>]+>")
 
 

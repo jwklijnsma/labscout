@@ -6,8 +6,8 @@ variable the config names (``*_token_env``), so the YAML file can live in git.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
 import os
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 import yaml

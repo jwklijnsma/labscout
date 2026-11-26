@@ -3,10 +3,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import pytest  # noqa: E402
+import pytest
 
-from labscout.config import Config  # noqa: E402
-from labscout.models import Host, HttpInfo, Port, ProxmoxGuest  # noqa: E402
+from labscout.config import Config
+from labscout.models import Host, HttpInfo, Port, ProxmoxGuest
 
 
 @pytest.fixture

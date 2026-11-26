@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 from . import __version__, discover, report, state
 from .config import SAMPLE, Config, load_config
@@ -197,7 +197,7 @@ def cmd_init(a) -> int:
 def cmd_serve(a) -> int:
     from .web import serve
     cfg = _cfg(a)
-    return serve(cfg, a.config, bind=a.bind, port=a.port)
+    return serve(cfg, a.config, bind=a.bind, port=a.port, no_auth=a.no_auth, verbose=a.verbose)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -254,6 +254,8 @@ def build_parser() -> argparse.ArgumentParser:
     common(s)
     s.add_argument("--bind", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8766)
+    s.add_argument("--no-auth", action="store_true", help="no access token (localhost only)")
+    s.add_argument("--verbose", action="store_true", help="log every request")
     s.set_defaults(func=cmd_serve)
 
     s = sub.add_parser("doctor", help="check Ollama, nmap, tokens and paths")

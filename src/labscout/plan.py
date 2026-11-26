@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
 import ipaddress
-from pathlib import Path
 import re
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
 import yaml
 
@@ -143,7 +143,8 @@ def build(hosts: list[Host], cfg, include_pending: bool = False) -> Plan:
             "dns_name": (f"{i.app}.{cfg.domain}" if (i and cfg.domain and i.web_port
                                                      and i.app not in DEVICE_APPS)
                          else h.hostname),
-            "description": (f"{i.display_name or i.app}: {i.description}"[:200] if i else h.name),
+            "description": ((f"{i.display_name or i.app}: {i.description}" if i.description
+                             else (i.display_name or i.app))[:200] if i else h.name),
             "vm": h.proxmox.name if h.proxmox and h.proxmox.type in ("lxc", "qemu") else "",
             "services": services})
         # --- infra repo (only Proxmox guests are in its inventory) ----------------------------

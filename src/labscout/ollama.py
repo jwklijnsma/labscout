@@ -144,7 +144,7 @@ class _SchemaUnsupported(Exception):
 def parse_json_lenient(text: str) -> dict:
     """Parse model output that should be JSON, tolerating code fences and chatter."""
     text = text.strip()
-    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.S)
+    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
     if fence:
         text = fence.group(1).strip()
     try:

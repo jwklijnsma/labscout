@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections import Counter
 import json
-from pathlib import Path
 import time
+from collections import Counter
+from pathlib import Path
 
 from .models import Host
 from .plan import Plan

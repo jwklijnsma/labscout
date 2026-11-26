@@ -8,8 +8,8 @@ defaults the plan uses (health check path, /metrics, the exporter to add).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 
 from .models import Host, Identity
 
@@ -198,7 +198,7 @@ def score(rule: Rule, host: Host) -> tuple[float, list[str], int]:
     if rule.title:
         for h in host.http:
             for t in (h.title, h.body_hint):
-                if t and re.search(rule.title, t, re.I):
+                if t and re.search(rule.title, t, re.IGNORECASE):
                     if _TITLE_W > best:
                         best, port = _TITLE_W, h.port
                     reasons.append(f"HTTP title on :{h.port} matches '{t[:60]}'")
@@ -206,13 +206,13 @@ def score(rule: Rule, host: Host) -> tuple[float, list[str], int]:
     if rule.server:
         for h in host.http:
             for t in (h.server, h.powered_by, h.generator):
-                if t and re.search(rule.server, t, re.I):
+                if t and re.search(rule.server, t, re.IGNORECASE):
                     best, port = max(best, _PRODUCT_W), port or h.port
                     reasons.append(f"server header on :{h.port} is '{t[:40]}'")
     if rule.product:
         for p in host.ports:
             text = f"{p.product} {p.version} {p.extra}".strip()
-            if text and re.search(rule.product, text, re.I):
+            if text and re.search(rule.product, text, re.IGNORECASE):
                 best, port = max(best, _PRODUCT_W), port or p.port
                 reasons.append(f"nmap identifies :{p.port} as '{text[:50]}'")
     if rule.names:

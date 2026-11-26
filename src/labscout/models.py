@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
 import hashlib
 import json
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass
@@ -100,7 +100,7 @@ class Host:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Host":
+    def from_dict(cls, d: dict) -> Host:
         d = dict(d)
         d.pop("name", None)
         d["ports"] = [Port(**p) for p in d.get("ports") or []]

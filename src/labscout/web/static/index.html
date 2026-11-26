@@ -1,52 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>labscout</title>
-<link rel="stylesheet" href="/app.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>labscout</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script type="module" crossorigin src="/app.js"></script>
+  <link rel="stylesheet" crossorigin href="/app.css">
 </head>
 <body>
-<header>
-  <h1>labscout</h1>
-  <span id="meta" class="muted"></span>
-  <nav>
-    <button data-job="scan" class="primary">Scan</button>
-    <button data-job="identify">Identify</button>
-    <button data-job="identify-force" title="ask the model again, ignore the cache">Re-identify</button>
-    <button data-job="dry-run">Dry run</button>
-    <button data-job="apply-netbox" id="btn-netbox">Apply → NetBox</button>
-    <button data-job="apply-infra" id="btn-infra">Apply → infra branch</button>
-    <a href="/report.md">report.md</a>
-  </nav>
-</header>
-<main>
-  <section id="summary" class="cards"></section>
-  <section>
-    <div class="toolbar">
-      <input id="filter" placeholder="filter: ip, name, app, category" autocomplete="off">
-      <label><input type="checkbox" id="only-pending"> only pending</label>
-      <button id="approve-sure">Approve all ≥ 0.85</button>
-    </div>
-    <table id="hosts">
-      <thead><tr><th>IP</th><th>Name</th><th>App</th><th>Category</th><th>Source</th><th>Conf.</th>
-        <th>Health check</th><th>Monitoring</th><th>Decision</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
-  <section id="plan"></section>
-  <section>
-    <h2>Job <span id="job-state" class="muted"></span></h2>
-    <pre id="log"></pre>
-  </section>
-</main>
-<dialog id="detail"><form method="dialog"><div id="detail-body"></div>
-  <label>App <input name="app"></label>
-  <label>Web port <input name="web_port" type="number"></label>
-  <label>Health path <input name="health_path"></label>
-  <label>Note <input name="note"></label>
-  <menu><button value="cancel">Close</button><button value="save" class="primary">Save as manual</button></menu>
-</form></dialog>
-<script src="/app.js"></script>
+  <div id="root"></div>
 </body>
 </html>

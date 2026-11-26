@@ -8,12 +8,12 @@ addresses the kernel happens to know (/proc/net/arp).
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import shutil
 import socket
 import subprocess
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 
 from ..models import Host, Port
 

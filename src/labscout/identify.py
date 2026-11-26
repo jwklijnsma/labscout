@@ -8,10 +8,10 @@ manual decision in the UI is never overwritten.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import json
-from pathlib import Path
 import re
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from . import fingerprints
 from .models import Host, Identity
@@ -121,9 +121,9 @@ class Identifier:
         except (OSError, ValueError):
             self.cache = {}
 
-    def _ask(self, host: Host, hint: Identity | None) -> Identity | None:
+    def _ask(self, host: Host, hint: Identity | None, force: bool = False) -> Identity | None:
         key = f"{self.cfg.model}:{host.fingerprint()}"
-        if key in self.cache:
+        if key in self.cache and not force:
             ident = Identity(**self.cache[key])
             ident.reasons = ident.reasons + ["(cached)"] if "(cached)" not in ident.reasons else ident.reasons
             return ident
@@ -157,7 +157,7 @@ class Identifier:
             return rule
         if not self.client or not (host.ports or host.proxmox):
             return rule
-        ai = self._ask(host, rule)
+        ai = self._ask(host, rule, force)
         if ai is None:
             return rule
         # When both agree, keep the rule's monitoring defaults but take the higher confidence

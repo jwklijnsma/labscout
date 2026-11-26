@@ -23,6 +23,17 @@
   ],
   "packageRules": [
     {
+      "description": "The web UI's npm packages: one PR for all minor and patch bumps",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "web UI dependencies"
+    },
+    {
       "description": "GitHub Actions: one PR for all minor and patch bumps",
       "matchManagers": [
         "github-actions"
