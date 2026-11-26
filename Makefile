@@ -6,7 +6,7 @@ IMAGE  ?= labscout:dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install test serve docker docs version web web-dev web-test release release-patch release-minor release-major release-dry-run
+.PHONY: help install test serve docker docs screenshots version web web-dev web-test release release-patch release-minor release-major release-dry-run
 
 help: ## show this list
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -33,6 +33,9 @@ web-test: ## typecheck and test the UI
 
 docs: ## preview the documentation on http://localhost:8000
 	$(PYTHON) -m pip install -q -r requirements-docs.txt && zensical serve
+
+screenshots: ## regenerate docs/assets/screenshots/ from sample data (needs playwright)
+	$(PYTHON) scripts/screenshots.py
 
 docker: ## build the Docker image locally (labscout:dev)
 	docker build -t $(IMAGE) .

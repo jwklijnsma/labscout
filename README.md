@@ -8,6 +8,8 @@ services in NetBox. It is a sibling of [ansreview](https://github.com/jwklijnsma
 [helmreview](https://github.com/jwklijnsma/helmreview). The model runs on your own Ollama and
 no scan data leaves your network.
 
+![labscout web UI: hosts with what runs on them, how sure the identification is, and your review](docs/assets/screenshots/hosts.png)
+
 ```text
  scan ──► identify ──► review ──► plan ──► apply
  nmap      rules +      you        report   NetBox REST
@@ -69,6 +71,14 @@ Full docs: <https://jwklijnsma.github.io/labscout/>. Preview them locally with `
 - **Scan:** start a scan or identify again.
 
 Jobs run in a queue in the background and show live logs. The top bar shows Ollama, the model picker, nmap and NetBox.
+
+| Host detail | Plan & apply |
+|---|---|
+| ![Host detail](docs/assets/screenshots/host-detail.png) | ![Plan and apply](docs/assets/screenshots/plan.png) |
+| **Background jobs** | **Dark mode** |
+| ![Background jobs](docs/assets/screenshots/jobs.png) | ![Dark mode](docs/assets/screenshots/hosts-dark.png) |
+
+Screenshots use made-up sample data; regenerate them with `make screenshots`.
 
 ## Development
 

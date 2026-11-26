@@ -17,6 +17,17 @@ fails when the committed bundle is out of date, and rebuilds it itself on Renova
 For hot reload, run `make serve` and, in a second terminal, `make web-dev`. The Vite dev server
 proxies `/api` to port 8766.
 
+## Screenshots
+
+The images in `docs/assets/screenshots/` come from `scripts/screenshots.py`. It runs the real UI
+on made-up sample hosts with the test suite's fake Ollama, and photographs each page in light and
+dark mode with Playwright. Regenerate them after UI changes:
+
+```bash
+pip install playwright && playwright install chromium
+make screenshots
+```
+
 ## Tests
 
 - `tests/test_labscout.py` covers discovery parsing, fingerprints, the model guard rails and
