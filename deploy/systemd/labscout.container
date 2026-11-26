@@ -1,0 +1,38 @@
+# labscout web UI as a Podman Quadlet (rootful: nmap needs raw sockets on the host network).
+#
+#   install -d -m 700 /etc/labscout
+#   labscout init /etc/labscout/labscout.yml          # or copy and edit the sample
+#   install -m 600 labscout.env.example /etc/labscout/secrets.env   # tokens, see below
+#   cp labscout.container /etc/containers/systemd/
+#   systemctl daemon-reload && systemctl start labscout
+#   systemctl enable --now podman-auto-update.timer   # daily image updates
+#
+# Open http://<host>:8766/?token=<LABSCOUT_WEB_TOKEN from secrets.env>
+# Logs: journalctl -u labscout -f
+
+[Unit]
+Description=labscout: homelab discovery with a local Ollama model
+Documentation=https://github.com/jwklijnsma/labscout
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName=labscout
+Image=ghcr.io/jwklijnsma/labscout:latest
+AutoUpdate=registry
+# Host network: discovery sees the real interfaces (one per VLAN you want ARP results for)
+Network=host
+AddCapability=NET_RAW NET_ADMIN
+Volume=/etc/labscout:/config:ro,Z
+Volume=labscout-data:/data:Z
+# Optional: your infra repo, for `apply --infra` (commits on a branch, never pushes)
+# Volume=/srv/infra:/infra:Z
+EnvironmentFile=/etc/labscout/secrets.env
+Exec=serve -c /config/labscout.yml --bind 0.0.0.0 --port 8766
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

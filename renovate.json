@@ -1,0 +1,44 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Versions pinned in Dockerfile ARGs with a '# renovate:' comment above them",
+      "managerFilePatterns": [
+        "/(^|/)(Dockerfile|Containerfile)$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?\\s+ARG \\w+_VERSION=(?<currentValue>\\S+)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "GitHub Actions: one PR for all minor and patch bumps",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "The docs site (requirements-docs.txt)",
+      "matchFileNames": [
+        "requirements-docs.txt"
+      ],
+      "commitMessageTopic": "docs dependency {{depName}}"
+    }
+  ]
+}

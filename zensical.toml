@@ -1,0 +1,79 @@
+# labscout documentation - built with Zensical (https://zensical.org)
+#   pip install -r requirements-docs.txt
+#   zensical serve            # preview on http://localhost:8000
+#   zensical build --strict   # what CI runs
+
+[project]
+site_name = "labscout"
+site_description = "Discover a homelab with a local Ollama model: scan, identify, plan monitoring, fill NetBox"
+site_url = "https://jwklijnsma.github.io/labscout/"
+repo_url = "https://github.com/jwklijnsma/labscout"
+repo_name = "jwklijnsma/labscout"
+edit_uri = "edit/main/docs/"
+copyright = "labscout - no scan data leaves your network"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting started" = [
+    { "Install" = "getting-started/install.md" },
+    { "Quick start" = "getting-started/quickstart.md" },
+  ] },
+  { "Use" = [
+    { "Scan and identify" = "usage/scan.md" },
+    { "Review, plan and apply" = "usage/apply.md" },
+    { "Web UI" = "usage/web-ui.md" },
+  ] },
+  { "Deploy" = "deploy.md" },
+  { "Configuration" = "configuration.md" },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "content.action.edit",
+  "content.code.annotate",
+  "content.code.copy",
+  "navigation.footer",
+  "navigation.sections",
+  "navigation.tabs",
+  "navigation.top",
+  "search.highlight",
+]
+
+[project.theme.icon]
+logo = "material/radar"
+repo = "fontawesome/brands/github"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "black"
+accent = "red"
+toggle.icon = "material/weather-night"
+toggle.name = "Dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "black"
+accent = "red"
+toggle.icon = "material/weather-sunny"
+toggle.name = "Light mode"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.snippets = {}
+pymdownx.tabbed.alternate_style = true
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
