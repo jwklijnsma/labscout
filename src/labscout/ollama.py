@@ -107,6 +107,9 @@ class OllamaClient:
             "model": self.model,
             "stream": True,
             "keep_alive": self.keep_alive,
+            # Thinking models (qwen3, gpt-oss, ...) answer straight away: the schema is the
+            # reasoning we need. Ollama ignores this for models without thinking.
+            "think": False,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
             "format": schema if self._schema_supported else "json",
