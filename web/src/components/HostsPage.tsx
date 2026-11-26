@@ -103,7 +103,7 @@ export function HostsPage({ ip }: { ip: string | null }) {
             <select value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} aria-label="Confidence threshold">
               {[0.99, 0.95, 0.9, 0.85, 0.75, 0.6].map((t) => <option key={t} value={t}>≥ {Math.round(t * 100)}%</option>)}
             </select>
-            <button className="btn" disabled={busy || !sure} onClick={() => approveAbove(threshold)}>Approve {sure || ""} sure ones</button>
+            <button className="btn" disabled={busy || !sure} onClick={() => approveAbove(threshold)}>{sure ? `Approve ${sure} sure ${sure === 1 ? "one" : "ones"}` : "Approve sure ones"}</button>
           </label>
           <button className="btn primary" disabled={busy} onClick={() => startJob("run")}>Rescan</button>
         </div>
